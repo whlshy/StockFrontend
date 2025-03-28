@@ -1,0 +1,45 @@
+@import './lib/flex.styl';
+
+body
+  margin 0;
+  font-family 'Noto Sans TC', sans-serif;
+
+#root
+  display flex;
+
+.cover
+  position absolute;
+  top 0;
+  left 0;
+  right 0;
+  bottom 0;
+
+.reset-link
+  text-decoration none;
+  color inherit;
+
+footer
+  background-color rgba(0, 0, 0, 0.74);
+  display flex;
+  flex-wrap wrap;
+  justify-content center;
+  color white;
+  padding 1em 0;
+  border-bottom 0.8em solid rgba(0, 0, 0, 0.74);
+  height auto;
+
+  // min-height 240px
+  .footer-content
+    margin 0 1em;
+    justify-content center;
+    min-width 250px;
+
+    &.footer-info
+      padding 1em;
+
+      .rowTitle
+        font-size 14px;
+        word-break keep-all;
+
+  .footer-logo
+    max-width 200px;

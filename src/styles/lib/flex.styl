@@ -1,0 +1,67 @@
+dflex($direction = 0, $center = 0)
+    display flex;
+
+    // min-height: 0
+    // min-width: 0
+    if ($direction == 1)
+        flex-direction column;
+
+    if ($center == 1)
+        align-items center;
+        justify-content center;
+    else if ($center == 2)
+        align-items flex-start;
+
+.flex
+    dflex();
+
+.flex-col
+    flex-direction column;
+
+.flex-row
+    flex-direction row;
+
+.f1
+    flex-grow 1;
+
+.aic
+    align-items center;
+
+.aie
+    align-items flex-end;
+
+.ais
+    align-items flex-start;
+
+.jcc
+    justify-content center;
+
+.jcsb
+    justify-content space-between;
+
+.jce
+    justify-content flex-end;
+
+.jcs
+    justify-content flex-start;
+
+.ofa
+    overflow auto;
+
+.flex-0-0
+    flex 0 0 auto;
+
+.flex-1-1
+    flex 1 1 auto;
+
+.fdc
+    flex-direction column;
+
+.fww
+    flex-wrap wrap;
+
+.fwu
+    flex-wrap unset;
+
+.fwu-i
+    flex-wrap unset !important;

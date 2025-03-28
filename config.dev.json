@@ -1,0 +1,4 @@
+{
+  "apiurl": "https://localhost:7050",
+  "cors": true
+}
