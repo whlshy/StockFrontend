@@ -24,8 +24,8 @@ function Main() {
         <Content />
         <Footer
           title={
-            "WHL's Stock Web"
-            // <img src='./wke_ani.gif' alt="wke logo" className='footer-logo' />
+            // "WHL's Stock Web"
+            <img src='/imgs/WHL.png' alt="WHL logo" className='footer-logo max-h-20' />
           }
         />
       </Box>

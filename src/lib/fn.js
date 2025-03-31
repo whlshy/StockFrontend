@@ -6,7 +6,7 @@ const array2obj = (arr = [], key = "") => {
 }
 
 const reClassName = (str) => {
-  return str?.replaceAll("<\\>", '/')
+  return str?.replaceAll("<\\\\>", '/')
 }
 
 export {

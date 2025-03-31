@@ -1,5 +1,6 @@
 import React, { cloneElement, useState, Fragment } from 'react'
-import { Button, Dialog, DialogTitle, DialogContent, DialogActions, IconButton, Box } from '@mui/material'
+import { Button, Dialog, DialogTitle, DialogContent, DialogActions, IconButton, Box, useMediaQuery } from '@mui/material'
+import { useTheme } from '@mui/material/styles'
 import { styled } from '@mui/material/styles'
 import CloseIcon from '@mui/icons-material/Close'
 import RwdWrapper from '../wrapper/RwdWrapper'
@@ -13,7 +14,7 @@ const BootstrapDialog = styled(Dialog)(({ theme }) => ({
   },
 }));
 
-function Index(props) {
+export default function Index(props) {
   const { isRwdWidth } = props
 
   return !!isRwdWidth ? (
@@ -24,37 +25,43 @@ function Index(props) {
     <CustomDialog {...props} />
 }
 
-export default Index
-
 const CustomDialog = (props) => {
   const { content_width,
-    open, title, content, actions, body, closeDialog, disableScrollLock, fullWidth, fullHeight, maxWidth, fullScreen, isRwdWidth, contentProps = {} } = props
+    open, title, content, actions, body, handleClose, disableScrollLock, fullWidth, fullHeight, maxWidth, fullScreen, isRwdWidth, contentProps = {} } = props
+
+  const theme = useTheme()
+  const isFullScreen = useMediaQuery(theme.breakpoints.down('sm'))
 
   const p = isRwdWidth ? {
     sx: {
       width: "100%",
       maxWidth: `${content_width} !important`,
+      maxHeight: "100%",
       height: fullHeight ? "100%" : "auto",
     }
   } : { fullWidth, maxWidth, fullScreen }
 
   return (
     <BootstrapDialog
-      onClose={closeDialog}
+      onClose={handleClose}
       open={open}
       disableScrollLock={!!disableScrollLock}
       {...(!!isRwdWidth ? {} : p)}
       PaperProps={{
         ...(!!isRwdWidth ? p : {})
       }}
+      fullScreen={isFullScreen}
     >
       <Box className="flex aic jcsb" sx={{ p: 1 }}>
         <DialogTitle sx={{ m: 0, p: 0, pl: 1 }}>
           {title}
         </DialogTitle>
         <IconButton
-          onClick={closeDialog}
+          onClick={handleClose}
           sx={{
+            // position: 'absolute',
+            // right: 8,
+            // top: 8,
             color: (theme) => theme.palette.grey[500],
           }}
         >
@@ -62,14 +69,14 @@ const CustomDialog = (props) => {
         </IconButton>
       </Box>
       {
-        !!body ? cloneElement(body, { closeDialog }) :
+        !!body ? cloneElement(body, { handleClose }) :
           <>
             <DialogContent dividers sx={{ ...contentProps }}>
-              {!!content && cloneElement(content, { closeDialog })}
+              {!!content && cloneElement(content, { handleClose })}
             </DialogContent>
             {!!actions &&
               <DialogActions>
-                {cloneElement(actions, { closeDialog })}
+                {cloneElement(actions, { handleClose })}
               </DialogActions>
             }
           </>
@@ -95,4 +102,10 @@ const DialogWrapper = ({
   )
 }
 
-export { DialogWrapper }
+const full_props = {
+  fullWidth: true,
+  isRwdWidth: true,
+  fullHeight: "100%",
+}
+
+export { DialogWrapper, full_props }
