@@ -24,11 +24,19 @@ const stateAtom = atom(initialState,
 const useAccountStore = () => {
   const setData = useSetAtom(stateAtom)
   const setAccount = (data) => {
-    setData({
-      ...data?.data,
-      isLogin: (data?.mid == 0 || !data?.mid) ? false : true,
-      ...(Array.isArray(data?.classes) ? { classes: array2obj(data?.classes, "CName") } : {})
-    })
+
+    if (!data?.data) {
+      setData({
+        ...data,
+      })
+    }
+    else {
+      setData({
+        ...data?.data,
+        isLogin: (data?.data?.mid == 0) ? false : true,
+        ...(Array.isArray(data?.classes) ? { classes: array2obj(data?.classes, "CName") } : {})
+      })
+    }
   }
 
   return { ...useAtomValue(stateAtom), setAccount }

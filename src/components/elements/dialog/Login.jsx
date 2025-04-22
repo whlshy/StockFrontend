@@ -8,7 +8,7 @@ function Login(props) {
   const { state } = props
 
   const handleLogin = (sso) => {
-    window.location.href = `${apiurl}/api/Auth/login?state=${encodeURIComponent(state)}&sso=${sso}`
+    window.location.href = `${apiurl}/api/Auth/ssologin?state=${encodeURIComponent(state)}&sso=${sso}`
   }
 
   return (

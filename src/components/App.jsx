@@ -18,7 +18,7 @@ const App = () => {
 
   useEffect(() => {
     const member_info = query?.data || {}
-    setAccount({ ...member_info, refetch: query.refetch, isLoading: query.isLoading })
+    setAccount({ ...member_info, refetch: query.refetch })
   }, [query?.data])
 
   useEffect(() => {

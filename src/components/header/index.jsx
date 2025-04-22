@@ -32,10 +32,10 @@ function index(props) {
             </Typography>
           </Link>
           <Box sx={{ flexGrow: 1 }} />
-          {/* <LoginStateAvator
+          <LoginStateAvator
             name={name}
             logout={logout}
-          /> */}
+          />
         </Toolbar>
       </AppBar>
     </Box>

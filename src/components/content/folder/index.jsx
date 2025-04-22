@@ -20,7 +20,7 @@ function index() {
   const [searchParams, setSearchParams] = useSearchParams()
   const cid = searchParams.get('cid') || root_cid
 
-  if (!isLoading) {
+  if (!!isLoading) {
     return (
       <Box sx={{ p: 2 }}><Loading /></Box>
     )
