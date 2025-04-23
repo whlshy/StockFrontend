@@ -11,6 +11,7 @@ import FolderList, { FolderListItem, BackItem } from './elements/FolderList'
 import { Title } from './elements/Title'
 import MarkdownView from '@/components/elements/markdown'
 import AddDialogButton from './elements/AddDialogButton'
+import EditDialogButton from './elements/EditDialogButton'
 
 function index() {
   const { classes, mid, isLoading, ...account_atom } = useAccountStore()
@@ -55,7 +56,7 @@ const Folder = ({
         root_cid={root_cid}
       />
       <Divider sx={{ mt: 2, mb: 2 }} />
-      <TitleContenter {...props} data={data} refetch={refetch} />
+      <TitleContenter {...props} data={data} refetch={refetch} isRoot={root_cid == cid} />
       <FolderList>
         {// 如果不是根目錄，需要有返回上一層的按鈕
           data?.nLevel > 0 &&
@@ -74,6 +75,7 @@ const Folder = ({
 }
 
 const TitleContenter = ({
+  isRoot = true,
   data,
   refetch,
 }) => {
@@ -81,8 +83,10 @@ const TitleContenter = ({
 
   return (
     <Box sx={{ mb: 2 }}>
-      <Box className={"flex aic jcsb"}>
-        <Title title={CName} />
+      <Box className={"flex aic jcsb flex-wrap"}>
+        <EditDialogButton isRoot={isRoot} initData={{ cid: CCID, CName, Des: CDes }} refetch={refetch}>
+          <Title title={CName} />
+        </EditDialogButton>
         <Box>
           <AddDialogButton
             cid={CCID}

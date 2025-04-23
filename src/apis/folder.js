@@ -18,3 +18,12 @@ export const addFolder = async ({ cid, ...data }) => {
 export const useAddFolder = (query = {}) => {
   return useMutation({ mutationFn: addFolder, ...query })
 }
+
+// 編輯資料夾
+export const editFolder = async ({ cid, ...data }) => {
+  const response = await api({ method: "PUT", cmd: `api/Folder/${cid}`, data: { ...data } })
+  return response
+}
+export const useEditFolder = (query = {}) => {
+  return useMutation({ mutationFn: editFolder, ...query })
+}

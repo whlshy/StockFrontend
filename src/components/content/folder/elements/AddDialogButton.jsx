@@ -1,14 +1,14 @@
-import React, { Fragment, useState } from 'react'
+import React, { Fragment } from 'react'
 
 import { useAtom } from 'jotai'
 import { atomWithStorage } from "jotai/utils"
 
 import { useAddFolder } from '@/apis'
 
-import { DialogContent, DialogActions, TextField, Box, Button } from '@mui/material'
+import { DialogContent, DialogActions, Button } from '@mui/material'
 import { AddButton } from '@/components/elements/buttons'
 import { DialogWrapper, full_props } from '@/components/elements/dialog/Dialog'
-import { MarkdwonEditor } from '@/components/elements/markdown'
+import FolderEditor from './FolderEditor'
 
 function AddDialogButton(props) {
 
@@ -29,14 +29,6 @@ const addFolderAtom = atomWithStorage("addFolder", { CName: "", Des: "" })
 
 const AddFolderBody = ({ cid, handleClose, refetch }) => {
   const [data, setData] = useAtom(addFolderAtom)
-  const { CName, Des } = data
-
-  const onChange = (e) => {
-    setData({
-      ...data,
-      [e.target.name]: e.target.value
-    })
-  }
 
   const addFolderApi = useAddFolder({ onSuccess: () => refetch?.() })
 
@@ -51,26 +43,10 @@ const AddFolderBody = ({ cid, handleClose, refetch }) => {
   return (
     <Fragment>
       <DialogContent dividers>
-        <Box className="flex flex-col" sx={{ height: "100%" }}>
-          <TextField
-            label="資料夾名稱"
-            variant="standard"
-            value={CName}
-            name="CName"
-            onChange={onChange}
-            autoFocus={true}
-            fullWidth
-          />
-          <br />
-          <Box className="flex-1-1">
-            <MarkdwonEditor
-              value={Des}
-              onChange={(text) => setData({ ...data, Des: text })}
-              placeholder='請輸入資料夾描述'
-              autoFocus={false}
-            />
-          </Box>
-        </Box>
+        <FolderEditor
+          initData={data}
+          onChange={d => setData(d)}
+        />
       </DialogContent>
       <DialogActions>
         <Button onClick={handleSubmit}>
