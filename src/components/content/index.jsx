@@ -4,6 +4,7 @@ import { Routes, Route } from 'react-router-dom'
 import Home from './home'
 import Stock from './stock'
 import Folder from './folder'
+import Group from './group'
 
 function index() {
   return (
@@ -12,6 +13,7 @@ function index() {
         <Route path="/" element={<Home />} />
         <Route path="/stock/:code" element={<Stock />} />
         <Route path="/folder" element={<Folder />} />
+        <Route path="/group/:cid?" element={<Group />} />
       </Routes>
     </Box>
   )

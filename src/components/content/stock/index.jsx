@@ -15,7 +15,12 @@ const index = ({ ...props }) => {
 
   const { data, isLoading } = useGetStockInfo({ code })
 
-  const { Name, Code, Industry, Market, Date, ClosingPrice, Change, 每股股利, 殖利率,PerdictPE, Eps } = data || {}
+  const { Name, Code, Industry, Market, Date, ClosingPrice, 每股股利, 殖利率, PerdictPE, Eps,
+    OpeningPrice, HighestPrice, LowestPrice,
+  } = data || {}
+
+  const Change = (ClosingPrice - OpeningPrice).toFixed(2)
+  const ChangeRate = ((ClosingPrice - OpeningPrice) / OpeningPrice * 100).toFixed(2)
 
   return (
     <Box sx={{ p: 2 }}>
@@ -29,23 +34,23 @@ const index = ({ ...props }) => {
           <TableHeadRow>
             <TableCell sx={{ fontWeight: "bolder" }}>日期</TableCell>
             <TableCell sx={{ fontWeight: "bolder" }}>收盤價</TableCell>
-            <TableCell sx={{ fontWeight: "bolder" }}>漲跌幅</TableCell>
-            <TableCell sx={{ fontWeight: "bolder" }}>每股股利</TableCell>
-            <TableCell sx={{ fontWeight: "bolder" }}>殖利率</TableCell>
-            <TableCell sx={{ fontWeight: "bolder" }}>淨值比</TableCell>
-            <TableCell sx={{ fontWeight: "bolder" }}>PE</TableCell>
-            <TableCell sx={{ fontWeight: "bolder" }}>EPS (估)</TableCell>
+            <TableCell>漲跌</TableCell>
+            <TableCell>漲跌幅(%)</TableCell>
+            <TableCell sx={{ fontWeight: "bolder" }}>開盤</TableCell>
+            <TableCell sx={{ fontWeight: "bolder" }}>收盤</TableCell>
+            <TableCell sx={{ fontWeight: "bolder" }}>最高</TableCell>
+            <TableCell sx={{ fontWeight: "bolder" }}>最低</TableCell>
           </TableHeadRow>
           <TableBody>
             <TableRow>
               <TableCell>{Date?.split("T")?.[0]}</TableCell>
               <TableCell>{ClosingPrice}</TableCell>
-              <TableCell>{Change}</TableCell>
-              <TableCell>{每股股利}</TableCell>
-              <TableCell>{殖利率}</TableCell>
-              <TableCell>{PerdictPE}</TableCell>
-              <TableCell>{ClosingPrice}</TableCell>
-              <TableCell>{Eps}</TableCell>
+              <TableCell sx={{ color: Change > 0 ? "#ff333a" : "#00ab5e" }}><b>{Change}</b></TableCell>
+              <TableCell sx={{ color: ChangeRate > 0 ? "#ff333a" : "#00ab5e" }}><b>{ChangeRate}%</b></TableCell>
+              <TableCell>{OpeningPrice}</TableCell>
+              <TableCell sx={{ color: ClosingPrice > OpeningPrice ? "#ff333a" : "#00ab5e" }}><b>{ClosingPrice}</b></TableCell>
+              <TableCell>{HighestPrice}</TableCell>
+              <TableCell>{LowestPrice}</TableCell>
             </TableRow>
           </TableBody>
         </Table>

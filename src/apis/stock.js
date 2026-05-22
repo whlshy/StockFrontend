@@ -27,3 +27,12 @@ export const searchStock = async (data = {}) => {
 export const useSearchStock = ({ searchstr = "" }) => {
   return useQuery({ queryKey: ['searchStock', searchstr], queryFn: () => searchStock({ searchstr }), enabled: !!searchstr })
 }
+
+// 取得族群K棒歷史365天資料
+export const getStockGroupCandles = async (data = {}) => {
+  const response = await api({ method: "GET", cmd: "api/Stock/GroupCandles", data: { ...data } })
+  return response
+}
+export const useGetStockGroupCandles = ({ cid }) => {
+  return useQuery({ queryKey: ['getStockGroupCandles', cid], queryFn: () => getStockGroupCandles({ cid }), enabled: !!cid })
+}

@@ -10,6 +10,7 @@ const drawerWidth = 240;
 const drawer = [
   { text: "首頁", path: '/', icon: <Home /> },
   { text: "選股", path: '/folder', icon: <Folder /> },
+  { text: "族群", path: '/group', icon: <Folder /> },
 ]
 
 function index() {

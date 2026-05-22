@@ -1,5 +1,5 @@
 import React from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useSearchParams, useNavigate } from 'react-router-dom'
 
 import { useAccountStore } from '@/store'
 import { useGetFolder } from '@/apis'
@@ -12,6 +12,8 @@ import { Title } from './elements/Title'
 import MarkdownView from '@/components/elements/markdown'
 import AddDialogButton from './elements/AddDialogButton'
 import EditDialogButton from './elements/EditDialogButton'
+import { Table, TableHeadRow, TableBody, TableRow, TableCell, tablerow_sx } from '@/components/elements/table'
+import { CandleChartWithCid } from '@/components/content/group'
 
 function index() {
   const { classes, mid, isLoading, ...account_atom } = useAccountStore()
@@ -45,8 +47,16 @@ const Folder = ({
 }) => {
 
   const { refetch, ...query } = useGetFolder({ cid })
+  const navigate = useNavigate()
 
-  const { data, folder } = query?.data || {}
+  const { data, folder, stocks } = query?.data || {}
+
+  // 轉換總金額格式 (xxxM)
+  const convertTradeValueAvg = (value) => {
+    if (value < 10000) return value
+    if (value < 1000000) return (value / 10000).toFixed(2) + "萬"
+    return (value / 1000000).toFixed(2) + "億"
+  }
 
   return (
     <Box sx={{ p: 2 }}>
@@ -66,10 +76,43 @@ const Folder = ({
           <FolderListItem
             key={d?.CCID}
             to={`/folder?cid=${d?.CCID}`}
-            CName={d?.CName}
+            CName={<>{d?.CName} {d?.PercentAvg ? <b style={{ color: d?.PercentAvg > 0 ? "#ff333a" : "#00ab5e" }}>({d?.PercentAvg}%, 平均金額{convertTradeValueAvg(d?.TradeValueAvg)})</b> : ""}</>}
           />
         )}
       </FolderList>
+      <br />
+      <CandleChartWithCid cid={cid} />
+      <br />
+      <Table>
+        <TableHeadRow>
+        <TableCell>股票代號</TableCell>
+          <TableCell>名稱</TableCell>
+          <TableCell>上市櫃</TableCell>
+          <TableCell>漲跌</TableCell>
+          <TableCell>漲跌幅(%)</TableCell>
+          <TableCell>開盤</TableCell>
+          <TableCell>收盤</TableCell>
+          <TableCell>最高</TableCell>
+          <TableCell>最低</TableCell>
+          <TableCell>成交量(股)</TableCell>
+        </TableHeadRow>
+        <TableBody>
+          {Array.isArray(stocks) && stocks.map((d, idx) =>
+            <TableRow key={d?.OID} onClick={() => navigate(`/stock/${d?.Code}`)}>
+              <TableCell>{d?.Code}</TableCell>
+              <TableCell>{d?.Name}</TableCell>
+              <TableCell>{d?.Market}</TableCell>
+              <TableCell sx={{ color: d?.Change > 0 ? "#ff333a" : "#00ab5e" }}><b>{d?.Change}</b></TableCell>
+              <TableCell sx={{ color: d?.ChangeRate > 0 ? "#ff333a" : "#00ab5e" }}><b>{d?.ChangeRate}%</b></TableCell>
+              <TableCell>{d?.OpeningPrice}</TableCell>
+              <TableCell sx={{ color: d?.ClosingPrice > d?.OpeningPrice ? "#ff333a" : "#00ab5e" }}><b>{d?.ClosingPrice}</b></TableCell>
+              <TableCell>{d?.HighestPrice}</TableCell>
+              <TableCell>{d?.LowestPrice}</TableCell>
+              <TableCell>{d?.TradeVolume}</TableCell>
+            </TableRow>
+          )}
+        </TableBody>
+      </Table>
     </Box>
   )
 }
