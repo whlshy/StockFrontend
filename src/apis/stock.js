@@ -36,3 +36,30 @@ export const getStockGroupCandles = async (data = {}) => {
 export const useGetStockGroupCandles = ({ cid }) => {
   return useQuery({ queryKey: ['getStockGroupCandles', cid], queryFn: () => getStockGroupCandles({ cid }), enabled: !!cid })
 }
+
+// 取得 Codex 股票筆記
+export const getCodexStockNotes = async (data = {}) => {
+  const response = await api({ method: "GET", cmd: "api/Stock/ReadCodexNote", data: { ...data } })
+  return response
+}
+export const useGetCodexStockNotes = ({ code }) => {
+  return useQuery({ queryKey: ['getCodexStockNotes', code], queryFn: () => getCodexStockNotes({ code }), enabled: !!code })
+}
+// 個股延伸資料（還原K棒、籌碼、財報、事件、大盤）
+const makeStockQuery = (key, cmd) => {
+  const fetcher = async (data = {}) => api({ method: "GET", cmd, data: { ...data } })
+  const useHook = ({ code, enabled = true }) =>
+    useQuery({ queryKey: [key, code], queryFn: () => fetcher({ code }), enabled: !!code && enabled, staleTime: 5 * 60 * 1000 })
+  return [fetcher, useHook]
+}
+
+export const [getStockAdjustedCandles, useGetStockAdjustedCandles] = makeStockQuery('getStockAdjustedCandles', 'api/Stock/AdjustedCandles')
+export const [getStockInstitution, useGetStockInstitution] = makeStockQuery('getStockInstitution', 'api/Stock/Institution')
+export const [getStockMargin, useGetStockMargin] = makeStockQuery('getStockMargin', 'api/Stock/Margin')
+export const [getStockRevenue, useGetStockRevenue] = makeStockQuery('getStockRevenue', 'api/Stock/Revenue')
+export const [getStockEps, useGetStockEps] = makeStockQuery('getStockEps', 'api/Stock/Eps')
+export const [getStockEvents, useGetStockEvents] = makeStockQuery('getStockEvents', 'api/Stock/Events')
+
+export const getMarketIndex = async (data = {}) => api({ method: "GET", cmd: "api/Stock/MarketIndex", data: { ...data } })
+export const useGetMarketIndex = ({ indexCode = 'TAIEX', enabled = true } = {}) =>
+  useQuery({ queryKey: ['getMarketIndex', indexCode], queryFn: () => getMarketIndex({ indexCode }), enabled, staleTime: 5 * 60 * 1000 })
