@@ -95,6 +95,7 @@ const Folder = ({
           <TableCell>最高</TableCell>
           <TableCell>最低</TableCell>
           <TableCell>成交量(股)</TableCell>
+          <TableCell>成交金額(元)</TableCell>
         </TableHeadRow>
         <TableBody>
           {Array.isArray(stocks) && stocks.map((d, idx) =>
@@ -108,7 +109,8 @@ const Folder = ({
               <TableCell sx={{ color: d?.ClosingPrice > d?.OpeningPrice ? "#ff333a" : "#00ab5e" }}><b>{d?.ClosingPrice}</b></TableCell>
               <TableCell>{d?.HighestPrice}</TableCell>
               <TableCell>{d?.LowestPrice}</TableCell>
-              <TableCell>{d?.TradeVolume}</TableCell>
+              <TableCell align="right">{d?.TradeVolume?.toLocaleString()}</TableCell>
+              <TableCell align="right">{d?.TradeValue?.toLocaleString()}</TableCell>
             </TableRow>
           )}
         </TableBody>
