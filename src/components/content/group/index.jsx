@@ -1,41 +1,19 @@
-import React, { useEffect, useState } from 'react'
-import { Box, Divider, Chip } from '@mui/material'
+import React from 'react'
 import { useParams } from 'react-router-dom'
 
-import { useGetStockGroupCandles } from '@/apis'
+import GroupHome from './GroupHome'
+import GroupNode from './GroupNode'
+import CandleChartWithCid from './CandleChartWithCid'
 
-import Loading from '@/components/elements/Loading'
-import CandleChart from '@/components/content/stock/CandleChart'
-
+// 族群分析：/group 第一層分類，/group/:cid 該分類底下的族群
 function index() {
   let { cid } = useParams()
 
-  if (!cid) {
-    return (
-      <Box sx={{ p: 2 }}>
-        
-      </Box>
-    )
-  }
-  return (
-    <Box sx={{ p: 2 }}>
-      <CandleChartWithCid cid={cid} />
-    </Box>
-  )
+  if (!cid) return <GroupHome />
+
+  return <GroupNode key={cid} cid={cid} />
 }
 
 export default index
-
-const CandleChartWithCid = ({ cid }) => {
-  const { data, isLoading } = useGetStockGroupCandles({ cid })
-
-  if (!Array.isArray(data) || isLoading) return <Loading />
-
-  if (data?.length === 0) return <>資料夾內沒有股票</>
-
-  return (
-    <CandleChart candlestickData={data || []} volumeData={data || []} />
-  )
-}
 
 export { CandleChartWithCid }
