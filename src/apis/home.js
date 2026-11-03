@@ -1,5 +1,5 @@
 import api from '../lib/api'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, keepPreviousData } from '@tanstack/react-query'
 
 // 首頁市場總覽
 
@@ -24,3 +24,18 @@ export const useGetHomeFocus = () =>
 export const getHomeChips = async () => api({ method: "GET", cmd: "api/Home/Chips", data: { top: HOME_RANK_TOP } })
 export const useGetHomeChips = () =>
   useQuery({ queryKey: ['getHomeChips'], queryFn: getHomeChips, staleTime: 5 * 60 * 1000 })
+
+// 盤後掃描：新高與爆量、融資券異常、月營收亮點
+export const getScanHighs = async () => api({ method: "GET", cmd: "api/Home/Highs", data: { top: HOME_RANK_TOP } })
+export const useGetScanHighs = () =>
+  useQuery({ queryKey: ['getScanHighs'], queryFn: getScanHighs, staleTime: 5 * 60 * 1000 })
+
+export const getScanMargin = async () => api({ method: "GET", cmd: "api/Home/Margin", data: { top: HOME_RANK_TOP } })
+export const useGetScanMargin = () =>
+  useQuery({ queryKey: ['getScanMargin'], queryFn: getScanMargin, staleTime: 5 * 60 * 1000 })
+
+// month：yyyy-MM，不給為最新營收月份
+export const getScanRevenue = async ({ month } = {}) =>
+  api({ method: "GET", cmd: "api/Home/Revenue", data: month ? { month, top: HOME_RANK_TOP } : { top: HOME_RANK_TOP } })
+export const useGetScanRevenue = ({ month } = {}) =>
+  useQuery({ queryKey: ['getScanRevenue', month ?? ''], queryFn: () => getScanRevenue({ month }), staleTime: 5 * 60 * 1000, placeholderData: keepPreviousData })

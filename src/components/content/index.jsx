@@ -8,6 +8,7 @@ import { getModalBackground } from './stock/stockModal'
 import Folder from './folder'
 import Group from './group'
 import Sync from './sync'
+import Scan from './scan'
 
 function index() {
   const location = useLocation()
@@ -22,6 +23,7 @@ function index() {
         <Route path="/folder" element={<Folder />} />
         <Route path="/group/:cid?" element={<Group />} />
         <Route path="/sync" element={<Sync />} />
+        <Route path="/scan" element={<Scan />} />
       </Routes>
       {background && (
         <Routes>

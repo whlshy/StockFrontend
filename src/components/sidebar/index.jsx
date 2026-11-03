@@ -2,7 +2,7 @@ import React from 'react'
 import { Box, Divider, Drawer, Backdrop, Toolbar, List, useMediaQuery } from '@mui/material'
 import { useLocation, useNavigate, Link } from 'react-router-dom'
 import useAppStore from '../../store/app'
-import { Home, Folder, BubbleChart } from '@mui/icons-material';
+import { Home, Folder, BubbleChart, Radar } from '@mui/icons-material';
 import ListItem from '../ui/ListItem'
 import { getModalBackground } from '../content/stock/stockModal'
 
@@ -12,6 +12,7 @@ const drawer = [
   { text: "首頁", path: '/', icon: <Home /> },
   { text: "選股", path: '/folder', icon: <Folder /> },
   { text: "族群分析", path: '/group', icon: <BubbleChart /> },
+  { text: "盤後掃描", path: '/scan', icon: <Radar /> },
 ]
 
 function index() {
