@@ -57,6 +57,7 @@ export const [getStockAdjustedCandles, useGetStockAdjustedCandles] = makeStockQu
 export const [getStockInstitution, useGetStockInstitution] = makeStockQuery('getStockInstitution', 'api/Stock/Institution')
 export const [getStockMargin, useGetStockMargin] = makeStockQuery('getStockMargin', 'api/Stock/Margin')
 export const [getStockGroups, useGetStockGroups] = makeStockQuery('getStockGroups', 'api/Stock/Groups')
+export const [getStockNews, useGetStockNews] = makeStockQuery('getStockNews', 'api/Stock/News')
 export const [getStockRevenue, useGetStockRevenue] = makeStockQuery('getStockRevenue', 'api/Stock/Revenue')
 export const [getStockEps, useGetStockEps] = makeStockQuery('getStockEps', 'api/Stock/Eps')
 export const [getStockEvents, useGetStockEvents] = makeStockQuery('getStockEvents', 'api/Stock/Events')

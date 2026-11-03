@@ -21,6 +21,7 @@ import QuoteHeader from './QuoteHeader'
 import ChipCard from './ChipCard'
 import StockGroups from './StockGroups'
 import { RevenuePanel, EpsPanel } from './FinancePanel'
+import NewsPanel from './NewsPanel'
 import Search from './Search'
 import Loading from '@/components/elements/Loading'
 import MarkdownView from '@/components/elements/markdown'
@@ -30,6 +31,7 @@ const TAB_KEY = 'stockPage.tab'
 const TABS = [
   { key: 'revenue', label: '月營收' },
   { key: 'eps', label: '季EPS' },
+  { key: 'news', label: '新聞' },
   { key: 'notes', label: '筆記' },
 ]
 
@@ -85,6 +87,7 @@ const index = ({ inDialog = false }) => {
         </Tabs>
         {tab === 'revenue' && (revenueLoading ? <Loading /> : <RevenuePanel data={revenue} />)}
         {tab === 'eps' && (epsLoading ? <Loading /> : <EpsPanel data={eps} />)}
+        {tab === 'news' && <NewsPanel code={code} />}
         {tab === 'notes' && (
           <CodexStockNotes data={codexNotesData} isLoading={codexNotesLoading} onSelect={setSelectedNote} />
         )}
