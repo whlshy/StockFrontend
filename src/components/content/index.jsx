@@ -9,6 +9,7 @@ import Folder from './folder'
 import Group from './group'
 import Sync from './sync'
 import Scan from './scan'
+import Screener from './screener'
 
 function index() {
   const location = useLocation()
@@ -24,6 +25,7 @@ function index() {
         <Route path="/group/:cid?" element={<Group />} />
         <Route path="/sync" element={<Sync />} />
         <Route path="/scan" element={<Scan />} />
+        <Route path="/screener" element={<Screener />} />
       </Routes>
       {background && (
         <Routes>
