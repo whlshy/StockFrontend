@@ -44,6 +44,14 @@ export const fmtPct = (v, digits = 2) => {
   return `${v > 0 ? '+' : ''}${v.toFixed(digits)}%`
 }
 
+// 漲勢集中在少數幾檔：族群平均漲幅明顯高於中位數，且領漲股一檔就貢獻平均漲幅的一半以上
+export const isConcentrated = (item) =>
+  item?.itemType === 'group' && item.nStocks >= 3 && item.pct1 >= 0.3 && item.pct1Median != null
+  && item.pct1Median <= item.pct1 * 0.4 && (item.topUpPct ?? 0) / item.nStocks >= item.pct1 * 0.5
+
+// 齊漲度顏色：六成以上上漲偏紅、四成以下偏綠
+export const breadthColor = (ratio) => (ratio == null ? FLAT_COLOR : ratio >= 0.6 ? UP_COLOR : ratio <= 0.4 ? DOWN_COLOR : '#f59e0b')
+
 export const fmtRatio = (n, total) => (total ? `${n ?? 0}/${total}` : '-')
 
 export { UP_COLOR, DOWN_COLOR, FLAT_COLOR }

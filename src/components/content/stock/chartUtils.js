@@ -258,5 +258,40 @@ export const instChipStats = (instRows, closeByTime, key, sigma = DEFAULT_SIGMA)
   }
   const costs = Object.fromEntries(COST_DAYS.map(d => [d, costOf(d)]))
 
-  return { date: rows[n - 1].time, today, streak, sign, sum5, sum20, avg5, avg20, zscore, abnormal, cost: costs[20], costs }
+  // 力道：今日買賣超金額是前 20 日平均（絕對值）的幾倍；金額＝張數 × 當天收盤，和首頁籌碼排行一致
+  const amtOf = (r) => { const c = closeByTime?.get(r.time); return c ? r.net * c : null }
+  const prevAmt = rows.slice(Math.max(0, n - 21), n - 1).map(amtOf).filter(v => v !== null)
+  const todayAmt = amtOf(rows[n - 1])
+  const avgAbs = prevAmt.length >= 5 ? sum(prevAmt.map(Math.abs)) / prevAmt.length : null
+  const power = todayAmt && avgAbs > 0 ? Math.abs(todayAmt) / avgAbs : null
+
+  return { date: rows[n - 1].time, today, streak, sign, sum5, sum20, avg5, avg20, zscore, abnormal, cost: costs[20], costs, power }
+}
+
+// ===== 融資統計 =====
+
+// 融資 N 日均價：近 N 日融資買進張數 × 當天收盤價加權平均（收盤價近似，融資買進也含當天賣掉的部分）
+export const MARGIN_COST_DAYS = 20
+
+// marginRows：Margin API（張）；closeByTime：Map(日期 → 收盤價)
+export const marginStats = (marginRows, closeByTime) => {
+  const rows = (marginRows || [])
+    .map(r => ({ time: day(r.time), balance: toNum(r.marginBalance), buy: toNum(r.marginBuy), limit: toNum(r.marginLimit) }))
+    .filter(r => r.balance !== null)
+    .sort((a, b) => (a.time < b.time ? -1 : 1))
+  const n = rows.length
+  if (n === 0) return null
+  const last = rows[n - 1]
+  let w = 0, ws = 0
+  for (const r of rows.slice(Math.max(0, n - MARGIN_COST_DAYS))) {
+    const c = closeByTime?.get(r.time)
+    if (r.buy > 0 && c) { w += r.buy; ws += r.buy * c }
+  }
+  return {
+    date: last.time,
+    balance: last.balance,
+    change: n > 1 ? last.balance - rows[n - 2].balance : null,
+    usage: last.limit > 0 ? (last.balance / last.limit) * 100 : null,
+    cost: w > 0 ? ws / w : null,
+  }
 }

@@ -6,9 +6,11 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useGetGroupNode, useGetGroupFlow, useGetGroupCandles } from '@/apis'
 import Loading from '@/components/elements/Loading'
 import CandleChart from '@/components/content/stock/CandleChart'
+import { useOpenStock } from '@/components/content/stock/stockModal'
 import BubbleChart from './BubbleChart'
 import ReplayBubble from './ReplayBubble'
 import RankingTable from './RankingTable'
+import HeatmapChart, { HEAT_METRICS } from './HeatmapChart'
 import {
   QUADRANTS, INST_TYPES, CRASH_THRESHOLD, quadrantOf, isContrarianBuy, changeColor, fmtAmt, fmtPct,
 } from './groupUtils'
@@ -20,6 +22,16 @@ const loadInst = () => {
     return INST_TYPES.some(t => t.key === v) ? v : 'total'
   } catch {
     return 'total'
+  }
+}
+
+const HEAT_KEY = 'groupPage.heatMetric'
+const loadHeat = () => {
+  try {
+    const v = localStorage.getItem(HEAT_KEY)
+    return HEAT_METRICS.some(t => t.key === v) ? v : 'pct1'
+  } catch {
+    return 'pct1'
   }
 }
 
@@ -35,8 +47,10 @@ const Section = ({ title, extra, children }) => (
 
 const GroupNode = ({ cid }) => {
   const navigate = useNavigate()
+  const openStock = useOpenStock()
   const [inst, setInst] = useState(loadInst)
   const [replay, setReplay] = useState(false)
+  const [heat, setHeat] = useState(loadHeat)
 
   const { data: nodeData, isLoading: nodeLoading, isError } = useGetGroupNode({ cid })
   const { data: flow, isLoading: flowLoading, isFetching } = useGetGroupFlow({ cid, inst })
@@ -57,8 +71,15 @@ const GroupNode = ({ cid }) => {
     try { localStorage.setItem(INST_KEY, v) } catch { /* 存不了就算了 */ }
   }
 
-  const onSelect = (it) => {
-    if (it.itemType === 'stock') navigate(`/stock/${it.code}`)
+  const changeHeat = (_, v) => {
+    if (!v) return
+    setHeat(v)
+    try { localStorage.setItem(HEAT_KEY, v) } catch { /* 存不了就算了 */ }
+  }
+
+  // list：點擊來源列表目前的順序（排行表依排序後），沒給就用泡泡圖的項目順序
+  const onSelect = (it, list = items) => {
+    if (it.itemType === 'stock') openStock(it.code, list.filter(x => x.itemType === 'stock'))
     else navigate(`/group/${it.id}`)
   }
 
@@ -139,6 +160,24 @@ const GroupNode = ({ cid }) => {
             : <CandleChart candlestickData={candles} />}
       </Section>
 
+      {!flowLoading && items.length > 0 && (
+        <Section
+          title={isStockLevel ? '個股熱力圖' : '族群熱力圖'}
+          extra={
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-xs text-gray-500">
+                格子大小：近20日成交值｜顏色：{heat.startsWith('pct') ? '漲跌幅' : `${instLabel}淨買超`}，紅漲綠跌
+              </span>
+              <ToggleButtonGroup size="small" exclusive value={heat} onChange={changeHeat}>
+                {HEAT_METRICS.map(t => <ToggleButton key={t.key} value={t.key} sx={{ px: 1.25, py: 0.25 }}>{t.label}</ToggleButton>)}
+              </ToggleButtonGroup>
+            </div>
+          }
+        >
+          <HeatmapChart items={items} metric={heat} onSelect={onSelect} />
+        </Section>
+      )}
+
       {hasOther && (
         <Section title="其他個股" extra={<span className="text-xs text-gray-500">直接放在這個分類、不屬於任何子分類的股票</span>}>
           <RankingTable items={otherFlow?.items || []} onSelect={onSelect} />
@@ -185,7 +224,7 @@ const Highlights = ({ items, market, instLabel, onSelect }) => {
           : (
             <ul className="mt-1 space-y-0.5 text-sm">
               {picks.map(it => (
-                <li key={`${it.itemType}-${it.id}`} className="flex cursor-pointer justify-between gap-2 hover:bg-gray-50" onClick={() => onSelect(it)}>
+                <li key={`${it.itemType}-${it.id}`} className="flex cursor-pointer justify-between gap-2 hover:bg-gray-50" onClick={() => onSelect(it, picks)}>
                   <span className="truncate text-blue-700">{it.code ? `${it.code} ` : ''}{it.name}</span>
                   <span className="whitespace-nowrap tabular-nums">
                     <span style={{ color: changeColor(it.flow1) }}>{fmtAmt(it.flow1)}億</span>{' '}

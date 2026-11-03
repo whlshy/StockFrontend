@@ -2,12 +2,14 @@ import React, { useMemo } from 'react'
 import { Chip } from '@mui/material'
 
 import { changeColor, day, fmtPrice, fmtValue, fmtLots } from './chartUtils'
+import Term, { GLOSSARY } from '@/components/elements/Term'
 
 // 個股頂部報價區
 const QuoteHeader = ({ info, candles, eps, events }) => {
   const {
     Name, Code, Industry, Market, Date, ClosingPrice, OpeningPrice, HighestPrice, LowestPrice,
-    TradeVolume, TradeValue, PE, 殖利率, 股價淨值比, Change, LastPB, LastPBClose, LastPBDate,
+    TradeVolume, TradeValue, PE, 殖利率, 股價淨值比, Change, LastPB, LastPBClose, LastPBDate, PrevRefClose, ExRight,
+    Transaction, PrevAvgTradeValuePerTxn20,
   } = info || {}
   const date = day(Date)
 
@@ -24,11 +26,12 @@ const QuoteHeader = ({ info, candles, eps, events }) => {
     const from = yearAgo.toISOString().slice(0, 10)
     const year = rows.filter(r => r.time > from && r.time <= date)
     return {
-      prevClose: prev?.close ?? (ClosingPrice != null && Change != null ? ClosingPrice - Change : null),
+      // 除權息當天要用 API 換算的參考價，K 棒的前日收盤沒有還原
+      prevClose: PrevRefClose ?? prev?.close ?? (ClosingPrice != null && Change != null ? ClosingPrice - Change : null),
       high52: year.length ? Math.max(...year.map(r => r.high)) : null,
       low52: year.length ? Math.min(...year.map(r => r.low)) : null,
     }
-  }, [candles, date, ClosingPrice, Change])
+  }, [candles, date, ClosingPrice, Change, PrevRefClose])
 
   const eps4q = useMemo(() => {
     const list = Array.isArray(eps) ? eps.filter(r => r.eps != null) : []
@@ -59,13 +62,24 @@ const QuoteHeader = ({ info, candles, eps, events }) => {
   const pct = diff != null && stats.prevClose ? (diff / stats.prevClose) * 100 : null
   const color = changeColor(diff)
 
+  // 平均每筆成交金額（元），和前 20 個交易日的平均比較
+  const perTxn = TradeValue != null && Transaction > 0 ? TradeValue / Transaction : null
+  const perTxnDiff = perTxn != null && PrevAvgTradeValuePerTxn20 > 0 ? (perTxn / PrevAvgTradeValuePerTxn20 - 1) * 100 : null
+  const fmtWan = (v) => (v >= 1e6 ? `${(v / 1e4).toFixed(0)}萬` : `${(v / 1e4).toFixed(1)}萬`)
+
   const items = [
     ['開盤', fmtPrice(OpeningPrice), changeColor(OpeningPrice - stats.prevClose)],
     ['最高', fmtPrice(HighestPrice), changeColor(HighestPrice - stats.prevClose)],
     ['最低', fmtPrice(LowestPrice), changeColor(LowestPrice - stats.prevClose)],
-    ['昨收', fmtPrice(stats.prevClose)],
+    ExRight
+      ? ['參考價', fmtPrice(stats.prevClose)]
+      : ['昨收', fmtPrice(stats.prevClose)],
     ['成交量(張)', TradeVolume != null ? fmtLots(TradeVolume / 1000) : '-'],
     ['成交值', TradeValue != null ? fmtValue(TradeValue / 1000) : '-'],
+    ['每筆均額', perTxn != null
+      ? <>{fmtWan(perTxn)}{perTxnDiff != null && <span className="ml-1 text-xs" style={{ color: changeColor(perTxnDiff) }}>（{perTxnDiff >= 0 ? '+' : ''}{perTxnDiff.toFixed(0)}%）</span>}</>
+      : '-', undefined,
+      PrevAvgTradeValuePerTxn20 > 0 ? `前 20 日平均：${fmtWan(PrevAvgTradeValuePerTxn20)}` : undefined],
     ['52週最高', fmtPrice(stats.high52)],
     ['52週最低', fmtPrice(stats.low52)],
     ['本益比', pe ? pe.toFixed(2) : '-', undefined, PE ? undefined : '收盤價 ÷ 近四季EPS'],
@@ -84,6 +98,7 @@ const QuoteHeader = ({ info, candles, eps, events }) => {
         <div className="flex gap-2">
           {!!Market && <Chip label={Market} color="primary" size="small" />}
           {!!Industry && <Chip label={Industry} color="success" size="small" />}
+          {!!ExRight && <Term k="除權息"><Chip label="除權息" size="small" /></Term>}
         </div>
       </div>
       <div className="mt-1 flex flex-wrap items-end gap-x-3 tabular-nums">
@@ -95,11 +110,14 @@ const QuoteHeader = ({ info, candles, eps, events }) => {
         )}
         <span className="pb-1.5 text-sm text-gray-400">{date} 收盤</span>
       </div>
-      <div className="mt-2 grid grid-cols-2 gap-x-6 gap-y-1 rounded-lg bg-gray-50 px-3 py-2 text-sm tabular-nums sm:grid-cols-4 lg:grid-cols-7">
+      <div className="mt-2 grid grid-cols-2 gap-x-6 gap-y-1 rounded-lg bg-gray-50 px-3 py-2 text-sm tabular-nums sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-7">
         {items.map(([label, value, c, hint]) => (
-          <div key={label} className="flex justify-between gap-2" title={hint}>
-            <span className="text-gray-500">{label}</span>
-            <span className="font-medium" style={{ color: c }}>{value}</span>
+          <div key={label} className="flex justify-between gap-2">
+            {/* 名詞說明加上這檔的計算備註（例如以哪天的淨值推算） */}
+            <span className="whitespace-nowrap text-gray-500">
+              <Term tip={[GLOSSARY[label.replace('(張)', '')], hint].filter(Boolean).join('\n') || undefined}>{label}</Term>
+            </span>
+            <span className="whitespace-nowrap text-right font-medium" style={{ color: c }}>{value}</span>
           </div>
         ))}
       </div>

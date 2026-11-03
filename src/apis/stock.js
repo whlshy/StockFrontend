@@ -56,6 +56,7 @@ const makeStockQuery = (key, cmd) => {
 export const [getStockAdjustedCandles, useGetStockAdjustedCandles] = makeStockQuery('getStockAdjustedCandles', 'api/Stock/AdjustedCandles')
 export const [getStockInstitution, useGetStockInstitution] = makeStockQuery('getStockInstitution', 'api/Stock/Institution')
 export const [getStockMargin, useGetStockMargin] = makeStockQuery('getStockMargin', 'api/Stock/Margin')
+export const [getStockGroups, useGetStockGroups] = makeStockQuery('getStockGroups', 'api/Stock/Groups')
 export const [getStockRevenue, useGetStockRevenue] = makeStockQuery('getStockRevenue', 'api/Stock/Revenue')
 export const [getStockEps, useGetStockEps] = makeStockQuery('getStockEps', 'api/Stock/Eps')
 export const [getStockEvents, useGetStockEvents] = makeStockQuery('getStockEvents', 'api/Stock/Events')

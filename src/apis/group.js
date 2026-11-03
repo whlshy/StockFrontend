@@ -1,5 +1,5 @@
 import api from '../lib/api'
-import { useQuery, keepPreviousData } from '@tanstack/react-query'
+import { useQuery, useMutation, keepPreviousData } from '@tanstack/react-query'
 
 // 族群分析（433 族群底下的分類）
 
@@ -35,3 +35,16 @@ export const useGetGroupFlowHistory = ({ cid, inst = 'total', enabled = true }) 
     enabled: !!cid && enabled,
     staleTime: 5 * 60 * 1000,
   })
+
+// 族群同步（爬蟲）：dryRun 只比對不寫入；API 參數放在網址上
+export const syncGroupTpex = async ({ dryRun = false } = {}) =>
+  api({ method: "POST", cmd: `api/Group/SyncTpex?${new URLSearchParams({ dryRun })}` })
+export const useSyncGroupTpex = (query = {}) => useMutation({ mutationFn: syncGroupTpex, ...query })
+
+// sections：Yahoo 區塊 id 陣列，空陣列為全部
+export const syncGroupYahoo = async ({ sections = [], dryRun = false } = {}) => {
+  const params = new URLSearchParams({ dryRun })
+  if (sections.length) params.set('section', sections.join(','))
+  return api({ method: "POST", cmd: `api/Group/SyncYahoo?${params}` })
+}
+export const useSyncGroupYahoo = (query = {}) => useMutation({ mutationFn: syncGroupYahoo, ...query })

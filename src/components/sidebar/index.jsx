@@ -4,6 +4,7 @@ import { useLocation, useNavigate, Link } from 'react-router-dom'
 import useAppStore from '../../store/app'
 import { Home, Folder, BubbleChart } from '@mui/icons-material';
 import ListItem from '../ui/ListItem'
+import { getModalBackground } from '../content/stock/stockModal'
 
 const drawerWidth = 240;
 
@@ -55,7 +56,7 @@ function index() {
                   to={path}
                   className="reset-link"
                   onClick={e => (!matches && setSidebarOpen(false))}
-                  selected={!!location.pathname.match(new RegExp(path + '($|/)'))}
+                  selected={!!(getModalBackground(location) || location).pathname.match(new RegExp(path + '($|/)'))}
                   icon={icon}
                   text={text}
                 />

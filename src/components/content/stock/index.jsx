@@ -19,6 +19,7 @@ import {
 import CandleChart from '@/components/content/stock/CandleChart'
 import QuoteHeader from './QuoteHeader'
 import ChipCard from './ChipCard'
+import StockGroups from './StockGroups'
 import { RevenuePanel, EpsPanel } from './FinancePanel'
 import Search from './Search'
 import Loading from '@/components/elements/Loading'
@@ -41,7 +42,8 @@ const loadTab = () => {
   }
 }
 
-const index = ({ ...props }) => {
+// inDialog：在彈跳視窗中顯示，不放搜尋框
+const index = ({ inDialog = false }) => {
   let { code } = useParams()
 
   const { data: info } = useGetStockInfo({ code })
@@ -61,8 +63,9 @@ const index = ({ ...props }) => {
 
   return (
     <Box sx={{ p: 2 }}>
-      <Search />
+      {!inDialog && <Search />}
       <QuoteHeader info={info} candles={candles} eps={eps} events={events} />
+      <StockGroups key={code} code={code} />
       <ChipCard code={code} candles={candles} />
 
       {!Array.isArray(candles) || candlesLoading

@@ -2,8 +2,9 @@ import React, { useMemo, useState } from 'react'
 import { Paper, Chip, IconButton, Popover, Slider, Button, Tooltip } from '@mui/material'
 import { Tune } from '@mui/icons-material'
 
-import { useGetStockInstitution } from '@/apis'
-import { instChipStats, DEFAULT_SIGMA, COST_DAYS, changeColor, day, fmtLots, fmtPrice } from './chartUtils'
+import { useGetStockInstitution, useGetStockMargin } from '@/apis'
+import Term from '@/components/elements/Term'
+import { instChipStats, marginStats, DEFAULT_SIGMA, COST_DAYS, MARGIN_COST_DAYS, changeColor, day, fmtLots, fmtPrice } from './chartUtils'
 
 const TYPES = [
   { key: 'foreign', label: '外資' },
@@ -11,6 +12,10 @@ const TYPES = [
   { key: 'dealer', label: '自營商' },
   { key: 'total', label: '三大法人' },
 ]
+
+// 土洋同買／同賣／對作：外資、投信當日都超過 0.1 億才標，和首頁籌碼排行一致
+const TAG_MIN = 0.1
+const TAG_COLOR = { 同買: '#ef4444', 同賣: '#16a34a', 對作: '#f59e0b' }
 
 // 異常靈敏度：使用者自訂才存 localStorage，重設就刪除回到預設
 const SIGMA_KEY = 'stockChip.sigma'
@@ -31,6 +36,7 @@ const saveSigma = (v) => {
 // 個股頁：法人籌碼摘要（報價區下方、K 線圖上方）
 const ChipCard = ({ code, candles }) => {
   const { data: instRows, isLoading } = useGetStockInstitution({ code })
+  const { data: marginRows } = useGetStockMargin({ code })
   const [sigma, setSigma] = useState(loadSigma)
   const [anchor, setAnchor] = useState(null)
 
@@ -49,6 +55,18 @@ const ChipCard = ({ code, candles }) => {
     [instRows, closeByTime, sigma]
   )
 
+  const margin = useMemo(() => marginStats(marginRows, closeByTime), [marginRows, closeByTime])
+
+  // 張數 × 當天收盤 → 億
+  const tag = useMemo(() => {
+    const f = stats.foreign, t = stats.trust
+    const c = f && closeByTime.get(f.date)
+    if (!f || !t || !c || f.date !== t.date) return null
+    const fa = (f.today * 1000 * c) / 1e8, ta = (t.today * 1000 * c) / 1e8
+    if (Math.abs(fa) < TAG_MIN || Math.abs(ta) < TAG_MIN) return null
+    return (fa > 0) === (ta > 0) ? (fa > 0 ? '同買' : '同賣') : '對作'
+  }, [stats, closeByTime])
+
   const changeSigma = (v) => { setSigma(v); saveSigma(v) }
 
   if (isLoading) return null
@@ -60,6 +78,11 @@ const ChipCard = ({ code, candles }) => {
         <div className="flex items-baseline gap-2">
           <h4 className="text-base font-bold">法人籌碼</h4>
           <span className="text-xs text-gray-500">資料日期 {stats.total.date}・單位：張</span>
+          {tag && (
+            <Term k={`土洋${tag}`}>
+              <Chip label={`土洋${tag}`} size="small" sx={{ height: 20, fontSize: 11, bgcolor: TAG_COLOR[tag], color: '#fff' }} />
+            </Term>
+          )}
         </div>
         <Tooltip title="調整異常大買／大賣的靈敏度">
           <button
@@ -111,13 +134,41 @@ const ChipCard = ({ code, candles }) => {
       <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
         {TYPES.map(t => <ChipColumn key={t.key} label={t.label} s={stats[t.key]} lastClose={lastClose} />)}
       </div>
+
+      {margin && <MarginRow m={margin} lastClose={lastClose} />}
     </Paper>
   )
 }
 
-const Row = ({ label, children, title }) => (
-  <div className="flex justify-between gap-2" title={title}>
-    <span className="text-gray-500">{label}</span>
+// 融資摘要：餘額、增減、使用率、融資 20 日均價
+const MarginRow = ({ m, lastClose }) => {
+  const diff = m.cost && lastClose ? ((lastClose - m.cost) / m.cost) * 100 : null
+  return (
+    <div className="mt-2 flex flex-wrap items-baseline gap-x-4 gap-y-1 rounded-lg bg-gray-50 px-3 py-2 text-sm tabular-nums">
+      <span className="font-semibold"><Term k="融資" /></span>
+      <span>
+        <span className="text-gray-500"><Term k="融資餘額">餘額</Term> </span>{fmtLots(m.balance)}
+        {m.change != null && <span className="ml-1 text-xs" style={{ color: changeColor(m.change) }}>（{fmtLots(m.change, true)}）</span>}
+      </span>
+      <span>
+        <span className="text-gray-500"><Term k="融資使用率">使用率</Term> </span>{m.usage != null ? `${m.usage.toFixed(1)}%` : '-'}
+      </span>
+      <span>
+        <span className="text-gray-500"><Term k="融資均價">{MARGIN_COST_DAYS}日均價</Term> </span>
+        {m.cost ? fmtPrice(m.cost.toFixed(2)) : '-'}
+        {diff != null && (
+          <span className="ml-1 text-xs" style={{ color: changeColor(diff) }}>（現價{diff >= 0 ? '高' : '低'} {Math.abs(diff).toFixed(1)}%）</span>
+        )}
+      </span>
+      <span className="ml-auto text-xs text-gray-400">資料日期 {m.date}</span>
+    </div>
+  )
+}
+
+// term：名詞說明的鍵；tip：直接給說明
+const Row = ({ label, children, term, tip }) => (
+  <div className="flex justify-between gap-2">
+    <span className="text-gray-500">{term || tip ? <Term k={term} tip={tip}>{label}</Term> : label}</span>
     <span className="font-medium">{children}</span>
   </div>
 )
@@ -136,27 +187,30 @@ const ChipColumn = ({ label, s, lastClose }) => {
   return (
     <div className="rounded-lg bg-gray-50 px-3 py-2 text-sm tabular-nums">
       <div className="flex items-center justify-between gap-1">
-        <span className="font-semibold">{label}</span>
-        {s.abnormal === 'buy' && <Chip label="異常大買" size="small" color="error" sx={{ height: 20, fontSize: 11 }} />}
-        {s.abnormal === 'sell' && <Chip label="異常大賣" size="small" color="success" sx={{ height: 20, fontSize: 11 }} />}
+        <span className="font-semibold"><Term k={label} /></span>
+        {s.abnormal === 'buy' && <Term k="異常大買"><Chip label="異常大買" size="small" color="error" sx={{ height: 20, fontSize: 11 }} /></Term>}
+        {s.abnormal === 'sell' && <Term k="異常大賣"><Chip label="異常大賣" size="small" color="success" sx={{ height: 20, fontSize: 11 }} /></Term>}
       </div>
       <div className="text-xl font-bold" style={{ color: changeColor(s.today) }}>{fmtLots(s.today, true)}</div>
-      <Row label="連續">
+      <Row label="連續" term="連續">
         {s.streak > 0
           ? <span style={{ color: changeColor(s.sign) }}>{s.sign > 0 ? '連買' : '連賣'} {s.streak} 天</span>
           : '-'}
       </Row>
-      <Row label="近5日" ><span style={{ color: changeColor(s.sum5) }}>{fmtLots(s.sum5, true)}</span></Row>
-      <Row label="近20日"><span style={{ color: changeColor(s.sum20) }}>{fmtLots(s.sum20, true)}</span></Row>
-      <Row label="動能" title="近5日日均買賣超與近20日日均比較">
+      <Row label="近5日" tip="近 5 個交易日買賣超張數的加總"><span style={{ color: changeColor(s.sum5) }}>{fmtLots(s.sum5, true)}</span></Row>
+      <Row label="近20日" tip="近 20 個交易日買賣超張數的加總"><span style={{ color: changeColor(s.sum20) }}>{fmtLots(s.sum20, true)}</span></Row>
+      <Row label="動能" term="動能">
         <span style={{ color: accel ? '#ef4444' : '#16a34a' }}>{accel ? '▲ 加速買進' : '▼ 轉弱'}</span>
+      </Row>
+      <Row label="力道" term="力道">
+        <span className={s.power >= 2 ? 'font-bold' : 'font-normal text-gray-500'}>{s.power != null ? `${s.power.toFixed(1)}x` : '-'}</span>
       </Row>
       <div className="mt-1 border-t border-gray-200 pt-1">
         {COST_DAYS.map(d => {
           const cost = s.costs?.[d]
           const diff = cost && lastClose ? ((lastClose - cost) / cost) * 100 : null
           return (
-            <Row key={d} label={`${d}日均價`} title={`近${d}日法人買超日的收盤價，依買超張數加權平均，大約代表這段期間的進場成本`}>
+            <Row key={d} label={`${d}日均價`} term="法人均價">
               {cost
                 ? <>
                   {fmtPrice(cost.toFixed(2))}

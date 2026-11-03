@@ -1,4 +1,5 @@
 import React, { useRef, useEffect, useLayoutEffect, useMemo, useState } from 'react'
+import { createPortal } from 'react-dom'
 import {
   createChart, createSeriesMarkers, CandlestickSeries, HistogramSeries, LineSeries, CrosshairMode,
 } from 'lightweight-charts'
@@ -60,6 +61,12 @@ const EVENT_TYPES = [
   { key: 'note', label: '筆記', color: '#7c3aed', text: '記', shape: 'circle', below: true },
 ]
 
+// 十字線：close＝橫線固定在該根K棒的收盤價；free＝橫線跟著滑鼠
+const CROSSHAIR_MODES = [
+  { key: 'close', label: '鎖定收盤' },
+  { key: 'free', label: '跟隨滑鼠' },
+]
+
 const MARKET_COLOR = '#0ea5e9'
 const COST_COLOR = '#7c3aed'
 const MAIN_HEIGHT = 420
@@ -80,6 +87,7 @@ const DEFAULT_SETTINGS = {
   adjusted: false,
   market: false,
   costLine: false,
+  crosshair: 'close',
 }
 
 const pickList = (value, allowed, fallback) =>
@@ -102,6 +110,7 @@ const loadSettings = () => {
       adjusted: typeof s.adjusted === 'boolean' ? s.adjusted : DEFAULT_SETTINGS.adjusted,
       market: typeof s.market === 'boolean' ? s.market : DEFAULT_SETTINGS.market,
       costLine: typeof s.costLine === 'boolean' ? s.costLine : DEFAULT_SETTINGS.costLine,
+      crosshair: CROSSHAIR_MODES.some(m => m.key === s.crosshair) ? s.crosshair : DEFAULT_SETTINGS.crosshair,
     }
   } catch {
     return DEFAULT_SETTINGS
@@ -127,10 +136,13 @@ const StockChart = ({ candlestickData, code, notes, onNoteClick }) => {
 
   const [settings, setSettings] = useState(loadSettings)
   const [hoverTime, setHoverTime] = useState(null)
+  // 副圖窗格的 DOM（左上角放名稱與數值），圖表重建時更新
+  const [paneCells, setPaneCells] = useState([])
 
   useEffect(() => saveSettings(settings), [settings])
 
-  const { period, mas: enabledMAs, instType, adjusted, market } = settings
+  const { period, mas: enabledMAs, instType, adjusted, market, crosshair } = settings
+  const lockClose = crosshair === 'close'
   const costLine = !!code && settings.costLine
   const range = settings.ranges[period]
   const hasCode = !!code
@@ -243,7 +255,8 @@ const StockChart = ({ candlestickData, code, notes, onNoteClick }) => {
         panes: { separatorColor: '#e5e7eb', enableResize: true },
       },
       grid: { vertLines: { color: '#f3f4f6' }, horzLines: { color: '#f3f4f6' } },
-      crosshair: { mode: CrosshairMode.Normal },
+      // 鎖定收盤時隱藏跟著滑鼠的橫線，改用下面的收盤價線
+      crosshair: { mode: CrosshairMode.Normal, horzLine: { visible: !lockClose, labelVisible: !lockClose } },
       rightPriceScale: { borderColor: '#e5e7eb', minimumWidth: 70 },
       timeScale: { borderColor: '#e5e7eb', rightOffset: 3, minBarSpacing: 1 },
       localization: { locale: 'zh-TW', dateFormat: 'yyyy-MM-dd' },
@@ -332,10 +345,23 @@ const StockChart = ({ candlestickData, code, notes, onNoteClick }) => {
       }
     })
 
+    // 鎖定收盤：滑鼠所在那根K棒的收盤價畫一條橫線，右側刻度顯示價格
+    const closeLine = lockClose
+      ? candle.createPriceLine({
+        price: 0, color: '#9598a1', lineWidth: 1, lineStyle: 3, lineVisible: false, axisLabelVisible: false,
+        axisLabelColor: '#4c525e', axisLabelTextColor: '#fff',
+      })
+      : null
+    const closeByTime = new Map(bars.map(b => [b.time, b.close]))
+
     // setHeight 依窗格目前的實際高度分配，要等第一次排版後再設；剩餘高度會平均分給副圖
     const raf = requestAnimationFrame(() => {
       const allPanes = chart.panes()
       allPanes.length > 1 && allPanes[0].setHeight(MAIN_HEIGHT)
+      // 每個副圖窗格的儲存格（左側刻度、圖、右側刻度中的「圖」），用來放名稱與數值；窗格 DOM 要排版後才存在
+      setPaneCells(allPanes.slice(1).map(p => {
+        try { return p.getHTMLElement()?.children[1] ?? null } catch { return null }
+      }))
     })
 
     const observer = new ResizeObserver(entries => {
@@ -346,7 +372,14 @@ const StockChart = ({ candlestickData, code, notes, onNoteClick }) => {
 
     if (savedRangeRef.current) chart.timeScale().setVisibleLogicalRange(savedRangeRef.current)
 
-    chart.subscribeCrosshairMove(param => setHoverTime(param.time ?? null))
+    chart.subscribeCrosshairMove(param => {
+      setHoverTime(param.time ?? null)
+      if (!closeLine) return
+      const close = param.time != null ? closeByTime.get(param.time) : undefined
+      closeLine.applyOptions(close != null
+        ? { price: close, lineVisible: true, axisLabelVisible: true }
+        : { lineVisible: false, axisLabelVisible: false })
+    })
     chart.subscribeClick(param => {
       const note = param.time && eventsByBar.get(param.time)?.find(e => e.type === 'note')?.note
       note && onNoteClickRef.current?.(note)
@@ -357,10 +390,11 @@ const StockChart = ({ candlestickData, code, notes, onNoteClick }) => {
       cancelAnimationFrame(raf)
       observer.disconnect()
       savedRangeRef.current = chart.timeScale().getVisibleLogicalRange()
+      setPaneCells([])
       chart.remove()
       chartRef.current = null
     }
-  }, [bars, maData, enabledMAs.join(','), panesKey, instType, inst, margin, kd, macd, rsi, marketScaled, eventsByBar, totalHeight, costPrice])
+  }, [bars, maData, enabledMAs.join(','), panesKey, instType, inst, margin, kd, macd, rsi, marketScaled, eventsByBar, totalHeight, costPrice, lockClose])
 
   // 顯示區間（切換區間或K棒重算時套用）
   useEffect(() => {
@@ -458,6 +492,9 @@ const StockChart = ({ candlestickData, code, notes, onNoteClick }) => {
             </Toggle>
           ))}
         </Group>
+        <Group label="十字線">
+          <ButtonGroup items={CROSSHAIR_MODES} value={crosshair} onChange={m => update({ crosshair: m })} />
+        </Group>
         {panes.includes('institution') && (
           <Group label="法人">
             <ButtonGroup items={INST_TYPES} value={instType} onChange={t => update({ instType: t })} />
@@ -502,59 +539,6 @@ const StockChart = ({ candlestickData, code, notes, onNoteClick }) => {
           <span className="text-gray-400">沒有K線資料</span>
         )}
       </div>
-      {bar && panes.some(p => p !== 'volume') && (
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 px-3 pt-1 text-sm tabular-nums">
-          {panes.includes('institution') && (() => {
-            const r = lookups.inst.get(time)
-            return (
-              <span>
-                <span className="text-gray-400">法人(張) </span>
-                {INST_TYPES.map(t => (
-                  <span key={t.key} className="mr-2">
-                    {t.label} <V w={8} color={changeColor(r?.[t.key])}>{fmtLots(r?.[t.key], true)}</V>
-                  </span>
-                ))}
-              </span>
-            )
-          })()}
-          {panes.includes('margin') && (() => {
-            const r = lookups.margin.get(time)
-            return (
-              <span>
-                <span className="text-gray-400">餘額(張) </span>
-                <span style={{ color: UP_COLOR }}>融資 <V w={8}>{fmtLots(r?.marginBalance)}</V></span>{' '}
-                <span style={{ color: DOWN_COLOR }}>融券 <V w={7}>{fmtLots(r?.shortBalance)}</V></span>{' '}
-                <span className="text-gray-500">
-                  {r?.marginBalance
-                    ? <>券資比 <V w={7}>{((r.shortBalance / r.marginBalance) * 100).toFixed(2)}%</V></>
-                    : margin.length > 0 && time > margin[margin.length - 1].time
-                      ? <span className="text-gray-400">（資料至 {margin[margin.length - 1].time}）</span>
-                      : <V w={13}>{' '}</V>}
-                </span>
-              </span>
-            )
-          })()}
-          {panes.includes('kd') && (
-            <span>
-              <span style={{ color: '#f59e0b' }}>K <V w={5}>{fmtPrice(lookups.kdK.get(time)?.value)}</V></span>{' '}
-              <span style={{ color: '#3b82f6' }}>D <V w={5}>{fmtPrice(lookups.kdD.get(time)?.value)}</V></span>
-            </span>
-          )}
-          {panes.includes('macd') && (
-            <span>
-              <span style={{ color: '#f59e0b' }}>DIF <V w={7}>{fmtPrice(lookups.dif.get(time)?.value)}</V></span>{' '}
-              <span style={{ color: '#3b82f6' }}>MACD <V w={7}>{fmtPrice(lookups.macd.get(time)?.value)}</V></span>{' '}
-              <span style={{ color: changeColor(lookups.osc.get(time)?.value) }}>OSC <V w={7}>{fmtPrice(lookups.osc.get(time)?.value)}</V></span>
-            </span>
-          )}
-          {panes.includes('rsi') && (
-            <span>
-              <span style={{ color: '#f59e0b' }}>RSI6 <V w={5}>{fmtPrice(lookups.r6.get(time)?.value)}</V></span>{' '}
-              <span style={{ color: '#3b82f6' }}>RSI12 <V w={5}>{fmtPrice(lookups.r12.get(time)?.value)}</V></span>
-            </span>
-          )}
-        </div>
-      )}
       {hasCode && events.length > 0 && (
         // 固定一行，事件多時截斷，滑鼠移上去看全文
         <div
@@ -576,6 +560,79 @@ const StockChart = ({ candlestickData, code, notes, onNoteClick }) => {
       </div>
 
       <div ref={containerRef} style={{ height: totalHeight }} className="mt-1 w-full" />
+      {bar && panes.map((key, i) => paneCells[i] && createPortal(
+        <PaneLegend paneKey={key} time={time} bar={bar} lookups={lookups} instType={instType} margin={margin} />,
+        paneCells[i],
+        key,
+      ))}
+    </div>
+  )
+}
+
+// 副圖左上角：名稱與滑鼠所在那根K棒的數值
+const PaneLegend = ({ paneKey, time, bar, lookups, instType, margin }) => {
+  let content = null
+  if (paneKey === 'volume') {
+    content = <><b>成交值</b> <span>{fmtValue(bar.value)}</span></>
+  } else if (paneKey === 'institution') {
+    const r = lookups.inst.get(time)
+    content = (
+      <>
+        <b>法人買賣超(張)</b>
+        {INST_TYPES.map(t => (
+          <span key={t.key} className={t.key === instType ? 'font-semibold' : ''}>
+            {t.label} <span style={{ color: changeColor(r?.[t.key]) }}>{fmtLots(r?.[t.key], true)}</span>
+          </span>
+        ))}
+      </>
+    )
+  } else if (paneKey === 'margin') {
+    const r = lookups.margin.get(time)
+    const last = margin[margin.length - 1]
+    content = (
+      <>
+        <b>融資券餘額(張)</b>
+        <span style={{ color: UP_COLOR }}>融資 {fmtLots(r?.marginBalance)}</span>
+        <span style={{ color: DOWN_COLOR }}>融券 {fmtLots(r?.shortBalance)}</span>
+        {r?.marginBalance
+          ? <span>券資比 {((r.shortBalance / r.marginBalance) * 100).toFixed(2)}%</span>
+          : last && time > last.time && <span className="text-gray-400">資料至 {last.time}</span>}
+      </>
+    )
+  } else if (paneKey === 'kd') {
+    content = (
+      <>
+        <b>KD(9)</b>
+        <span style={{ color: '#f59e0b' }}>K {fmtPrice(lookups.kdK.get(time)?.value)}</span>
+        <span style={{ color: '#3b82f6' }}>D {fmtPrice(lookups.kdD.get(time)?.value)}</span>
+      </>
+    )
+  } else if (paneKey === 'macd') {
+    const osc = lookups.osc.get(time)?.value
+    content = (
+      <>
+        <b>MACD(12,26,9)</b>
+        <span style={{ color: '#f59e0b' }}>DIF {fmtPrice(lookups.dif.get(time)?.value)}</span>
+        <span style={{ color: '#3b82f6' }}>MACD {fmtPrice(lookups.macd.get(time)?.value)}</span>
+        <span style={{ color: changeColor(osc) }}>OSC {fmtPrice(osc)}</span>
+      </>
+    )
+  } else if (paneKey === 'rsi') {
+    content = (
+      <>
+        <b>RSI</b>
+        <span style={{ color: '#f59e0b' }}>RSI6 {fmtPrice(lookups.r6.get(time)?.value)}</span>
+        <span style={{ color: '#3b82f6' }}>RSI12 {fmtPrice(lookups.r12.get(time)?.value)}</span>
+      </>
+    )
+  }
+  return (
+    // 疊在圖上但不擋滑鼠操作
+    <div
+      className="pointer-events-none absolute left-1 top-0.5 flex flex-wrap items-center gap-x-2 rounded bg-white/80 px-1.5 text-xs leading-5 tabular-nums text-gray-600"
+      style={{ zIndex: 3 }}
+    >
+      {content}
     </div>
   )
 }
