@@ -1,4 +1,4 @@
-import React from "react"
+import React, { useState } from "react"
 import ReactDOM from 'react-dom/client'
 import App from "./components/App"
 import './styles/main.styl'
@@ -45,7 +45,8 @@ const Index = () => {
   const onSettled = (data, error) => {
   }
 
-  const queryClient = new QueryClient({
+  // 只在第一次渲染時建立：Index 會因為通知訊息變動而重新渲染，每次都 new 的話快取會被整個換掉
+  const [queryClient] = useState(() => new QueryClient({
     queryCache: new QueryCache({
       onSuccess,
       onError,
@@ -72,7 +73,7 @@ const Index = () => {
         }
       },
     },
-  })
+  }))
 
   return (
     <QueryClientProvider client={queryClient}>
