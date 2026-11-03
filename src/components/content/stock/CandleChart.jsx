@@ -142,6 +142,10 @@ const StockChart = ({ candlestickData, code, notes, onNoteClick }) => {
   const [hoverTime, setHoverTime] = useState(null)
   // 副圖窗格的 DOM（左上角放名稱與數值），圖表重建時更新
   const [paneCells, setPaneCells] = useState([])
+  // 沒按 Ctrl 就滾輪時，短暫提示要按 Ctrl 才能縮放
+  const [wheelHint, setWheelHint] = useState(false)
+  const wheelHintTimer = useRef(null)
+  useEffect(() => () => clearTimeout(wheelHintTimer.current), [])
 
   useEffect(() => saveSettings(settings), [settings])
 
@@ -273,6 +277,9 @@ const StockChart = ({ candlestickData, code, notes, onNoteClick }) => {
       crosshair: { mode: CrosshairMode.Normal, horzLine: { visible: !lockClose, labelVisible: !lockClose } },
       rightPriceScale: { borderColor: '#e5e7eb', minimumWidth: 70 },
       timeScale: { borderColor: '#e5e7eb', rightOffset: 3, minBarSpacing: 1 },
+      // 滾輪交給頁面捲動；縮放改成按住 Ctrl 再滾輪（下面自己處理），拖曳平移、雙指縮放照舊
+      handleScroll: { mouseWheel: false },
+      handleScale: { mouseWheel: false },
       localization: { locale: 'zh-TW', dateFormat: 'yyyy-MM-dd' },
     })
 
@@ -404,10 +411,34 @@ const StockChart = ({ candlestickData, code, notes, onNoteClick }) => {
       note && onNoteClickRef.current?.(note)
     })
 
+    // Ctrl（Mac 為 ⌘）＋滾輪：以滑鼠所在位置為中心縮放；筆電觸控板雙指縮放也會送出帶 Ctrl 的滾輪事件
+    const onWheel = (e) => {
+      if (!(e.ctrlKey || e.metaKey)) {
+        setWheelHint(true)
+        clearTimeout(wheelHintTimer.current)
+        wheelHintTimer.current = setTimeout(() => setWheelHint(false), 1500)
+        return
+      }
+      // 擋掉瀏覽器本身的 Ctrl＋滾輪放大網頁
+      e.preventDefault()
+      const ts = chart.timeScale()
+      const range = ts.getVisibleLogicalRange()
+      if (!range) return
+      const delta = e.deltaMode === 1 ? e.deltaY * 40 : e.deltaY
+      const factor = Math.exp(Math.max(-100, Math.min(100, delta)) * 0.003)
+      const anchor = ts.coordinateToLogical(e.clientX - el.getBoundingClientRect().left) ?? (range.from + range.to) / 2
+      const from = anchor - (anchor - range.from) * factor
+      const to = anchor + (range.to - anchor) * factor
+      // 至少留 5 根，避免放大到看不到K棒
+      if (to - from >= 5) ts.setVisibleLogicalRange({ from, to })
+    }
+    el.addEventListener('wheel', onWheel, { passive: false })
+
     chartRef.current = chart
     return () => {
       cancelAnimationFrame(raf)
       observer.disconnect()
+      el.removeEventListener('wheel', onWheel)
       savedRangeRef.current = chart.timeScale().getVisibleLogicalRange()
       setPaneCells([])
       chart.remove()
@@ -584,7 +615,14 @@ const StockChart = ({ candlestickData, code, notes, onNoteClick }) => {
       </div>
       </div>
 
-      <div ref={containerRef} style={{ height: totalHeight }} className="mt-1 w-full" />
+      <div className="relative">
+        <div ref={containerRef} style={{ height: totalHeight }} className="mt-1 w-full" />
+        {wheelHint && (
+          <div className="pointer-events-none absolute inset-x-0 top-1/3 flex justify-center" style={{ zIndex: 5 }}>
+            <span className="rounded bg-gray-800/75 px-3 py-1.5 text-sm text-white">按住 Ctrl 並滾動滑鼠滾輪可以縮放K線</span>
+          </div>
+        )}
+      </div>
       {bar && panes.map((key, i) => paneCells[i] && createPortal(
         <PaneLegend paneKey={key} time={time} bar={bar} lookups={lookups} instType={instType} margin={margin} />,
         paneCells[i],
