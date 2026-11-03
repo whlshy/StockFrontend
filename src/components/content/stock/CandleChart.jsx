@@ -10,6 +10,7 @@ import {
 import {
   UP_COLOR, DOWN_COLOR, changeColor, day, normalizeCandles, toAdjustedCandles, aggregateCandles, alignToBars,
   barTimeForDate, calcMA, calcKD, calcMACD, calcRSI, subtractMonths, fmtValue, fmtPrice, fmtLots, instChipStats,
+  marginStats, MARGIN_COST_DAYS,
 } from './chartUtils'
 
 const PERIODS = [
@@ -69,6 +70,7 @@ const CROSSHAIR_MODES = [
 
 const MARKET_COLOR = '#0ea5e9'
 const COST_COLOR = '#7c3aed'
+const MARGIN_COST_COLOR = '#ea580c'
 const MAIN_HEIGHT = 420
 const SUB_HEIGHT = 110
 
@@ -87,6 +89,7 @@ const DEFAULT_SETTINGS = {
   adjusted: false,
   market: false,
   costLine: false,
+  marginCostLine: false,
   crosshair: 'close',
 }
 
@@ -110,6 +113,7 @@ const loadSettings = () => {
       adjusted: typeof s.adjusted === 'boolean' ? s.adjusted : DEFAULT_SETTINGS.adjusted,
       market: typeof s.market === 'boolean' ? s.market : DEFAULT_SETTINGS.market,
       costLine: typeof s.costLine === 'boolean' ? s.costLine : DEFAULT_SETTINGS.costLine,
+      marginCostLine: typeof s.marginCostLine === 'boolean' ? s.marginCostLine : DEFAULT_SETTINGS.marginCostLine,
       crosshair: CROSSHAIR_MODES.some(m => m.key === s.crosshair) ? s.crosshair : DEFAULT_SETTINGS.crosshair,
     }
   } catch {
@@ -144,6 +148,7 @@ const StockChart = ({ candlestickData, code, notes, onNoteClick }) => {
   const { period, mas: enabledMAs, instType, adjusted, market, crosshair } = settings
   const lockClose = crosshair === 'close'
   const costLine = !!code && settings.costLine
+  const marginCostLine = !!code && settings.marginCostLine
   const range = settings.ranges[period]
   const hasCode = !!code
   const panes = PANES.filter(p => settings.panes.includes(p.key) && (!p.needCode || hasCode)).map(p => p.key)
@@ -154,7 +159,7 @@ const StockChart = ({ candlestickData, code, notes, onNoteClick }) => {
   // 資料來源
   const { data: adjRows } = useGetStockAdjustedCandles({ code, enabled: useAdjusted })
   const { data: instRows } = useGetStockInstitution({ code, enabled: panes.includes('institution') || costLine })
-  const { data: marginRows } = useGetStockMargin({ code, enabled: panes.includes('margin') })
+  const { data: marginRows } = useGetStockMargin({ code, enabled: panes.includes('margin') || marginCostLine })
   const { data: eventRows } = useGetStockEvents({ code, enabled: events.length > 0 })
   const { data: marketRows } = useGetMarketIndex({ enabled: market })
 
@@ -210,6 +215,15 @@ const StockChart = ({ candlestickData, code, notes, onNoteClick }) => {
     const st = instChipStats(instRows, closeByTime, instType)
     return st?.cost ? +st.cost.toFixed(2) : null
   }, [costLine, instRows, daily, instType])
+
+  // 融資 20 日均價：同樣用畫面上的日K收盤計算，和籌碼卡片的融資摘要同一個算法
+  const marginCostPrice = useMemo(() => {
+    if (!marginCostLine || !Array.isArray(marginRows)) return null
+    const closeByTime = new Map(daily.map(b => [b.time, b.close]))
+    const st = marginStats(marginRows, closeByTime)
+    return st?.cost ? +st.cost.toFixed(2) : null
+  }, [marginCostLine, marginRows, daily])
+  const noMarginData = marginCostLine && Array.isArray(marginRows) && marginRows.length === 0
 
   // 事件（含筆記）→ 依K棒時間分組
   const eventsByBar = useMemo(() => {
@@ -305,6 +319,11 @@ const StockChart = ({ candlestickData, code, notes, onNoteClick }) => {
         title: `${INST_TYPES.find(t => t.key === instType)?.label}均價`,
       })
     }
+    if (marginCostPrice) {
+      candle.createPriceLine({
+        price: marginCostPrice, color: MARGIN_COST_COLOR, lineWidth: 1, lineStyle: 2, axisLabelVisible: true, title: '融資均價',
+      })
+    }
 
     // 副圖
     const lineOpts = { lineWidth: 1, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false }
@@ -394,7 +413,7 @@ const StockChart = ({ candlestickData, code, notes, onNoteClick }) => {
       chart.remove()
       chartRef.current = null
     }
-  }, [bars, maData, enabledMAs.join(','), panesKey, instType, inst, margin, kd, macd, rsi, marketScaled, eventsByBar, totalHeight, costPrice, lockClose])
+  }, [bars, maData, enabledMAs.join(','), panesKey, instType, inst, margin, kd, macd, rsi, marketScaled, eventsByBar, totalHeight, costPrice, marginCostPrice, lockClose])
 
   // 顯示區間（切換區間或K棒重算時套用）
   useEffect(() => {
@@ -479,6 +498,12 @@ const StockChart = ({ candlestickData, code, notes, onNoteClick }) => {
             <Toggle on={costLine} color={COST_COLOR} onClick={() => update(s => ({ costLine: !s.costLine }))}
               title="近20日法人買超日的收盤價，依買超張數加權平均；跟著法人副圖的「合計／外資／投信／自營」切換">
               法人均價
+            </Toggle>
+          )}
+          {hasCode && (
+            <Toggle on={marginCostLine} color={MARGIN_COST_COLOR} onClick={() => update(s => ({ marginCostLine: !s.marginCostLine }))}
+              title={`近${MARGIN_COST_DAYS}日融資買進張數 × 當天收盤價的加權平均，大約代表融資戶的進場成本。用收盤價估計，融資買進也包含當沖`}>
+              融資均價{noMarginData && '（無資料）'}
             </Toggle>
           )}
         </div>
