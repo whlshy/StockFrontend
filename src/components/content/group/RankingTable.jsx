@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react'
 import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TableSortLabel, Chip } from '@mui/material'
 
 import Term from '@/components/elements/Term'
+import StockTag from '@/components/elements/StockTag'
 import { quadrantOf, quadrantInfo, changeColor, fmtAmt, fmtPct, isConcentrated, breadthColor } from './groupUtils'
 
 const pctCell = (v) => <span style={{ color: changeColor(v) }}>{fmtPct(v)}</span>
@@ -55,7 +56,7 @@ const StockSummary = ({ items }) => {
       <span>平均 {pctCell(g.pct1)}</span>
       <span className="inline-flex items-center gap-1">
         <Term k="中位數" /> {pctCell(g.pct1Median)}
-        {isConcentrated(g) && <Term tip="漲勢集中在少數幾檔：中位數不到平均漲幅的 4 成，而且領漲股一檔就貢獻平均漲幅的一半以上。"><Chip label="集中" size="small" sx={{ height: 18, fontSize: 11, bgcolor: '#fff7ed', color: '#c2410c' }} /></Term>}
+        {isConcentrated(g) && <StockTag name="集中" />}
       </span>
       <span><Term k="領漲" /> {g.topUpCode} {g.topUpName} {pctCell(g.topUpPct)}</span>
     </div>
@@ -71,7 +72,7 @@ const COLUMNS = [
     term: '中位數',
     render: it => (
       <span className="inline-flex items-center gap-1">
-        {isConcentrated(it) && <Term tip="漲勢集中在少數幾檔：中位數不到平均漲幅的 4 成，而且領漲股一檔就貢獻平均漲幅的一半以上。"><Chip label="集中" size="small" sx={{ height: 18, fontSize: 11, bgcolor: '#fff7ed', color: '#c2410c' }} /></Term>}
+        {isConcentrated(it) && <StockTag name="集中" />}
         {pctCell(it.pct1Median)}
       </span>
     ) },

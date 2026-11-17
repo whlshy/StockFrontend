@@ -1,9 +1,10 @@
 import React, { useMemo, useState } from 'react'
-import { Paper, Chip, IconButton, Popover, Slider, Button, Tooltip } from '@mui/material'
+import { Paper, IconButton, Popover, Slider, Button, Tooltip } from '@mui/material'
 import { Tune } from '@mui/icons-material'
 
 import { useGetStockInstitution, useGetStockMargin } from '@/apis'
 import Term from '@/components/elements/Term'
+import StockTag from '@/components/elements/StockTag'
 import { instChipStats, marginStats, DEFAULT_SIGMA, COST_DAYS, MARGIN_COST_DAYS, changeColor, day, fmtLots, fmtPrice } from './chartUtils'
 
 const TYPES = [
@@ -15,7 +16,6 @@ const TYPES = [
 
 // 土洋同買／同賣／對作：外資、投信當日都超過 0.1 億才標，和首頁籌碼排行一致
 const TAG_MIN = 0.1
-const TAG_COLOR = { 同買: '#ef4444', 同賣: '#16a34a', 對作: '#f59e0b' }
 
 // 異常靈敏度：使用者自訂才存 localStorage，重設就刪除回到預設
 const SIGMA_KEY = 'stockChip.sigma'
@@ -78,11 +78,7 @@ const ChipCard = ({ code, candles }) => {
         <div className="flex items-baseline gap-2">
           <h4 className="text-base font-bold">法人籌碼</h4>
           <span className="text-xs text-gray-500">資料日期 {stats.total.date}・單位：張</span>
-          {tag && (
-            <Term k={`土洋${tag}`}>
-              <Chip label={`土洋${tag}`} size="small" sx={{ height: 20, fontSize: 11, bgcolor: TAG_COLOR[tag], color: '#fff' }} />
-            </Term>
-          )}
+          {tag && <StockTag name={`土洋${tag}`} sx={{ height: 20 }} />}
         </div>
         <Tooltip title="調整異常大買／大賣的靈敏度">
           <button
@@ -188,8 +184,8 @@ const ChipColumn = ({ label, s, lastClose }) => {
     <div className="rounded-lg bg-gray-50 px-3 py-2 text-sm tabular-nums">
       <div className="flex items-center justify-between gap-1">
         <span className="font-semibold"><Term k={label} /></span>
-        {s.abnormal === 'buy' && <Term k="異常大買"><Chip label="異常大買" size="small" color="error" sx={{ height: 20, fontSize: 11 }} /></Term>}
-        {s.abnormal === 'sell' && <Term k="異常大賣"><Chip label="異常大賣" size="small" color="success" sx={{ height: 20, fontSize: 11 }} /></Term>}
+        {s.abnormal === 'buy' && <StockTag name="異常大買" sx={{ height: 20 }} />}
+        {s.abnormal === 'sell' && <StockTag name="異常大賣" sx={{ height: 20 }} />}
       </div>
       <div className="text-xl font-bold" style={{ color: changeColor(s.today) }}>{fmtLots(s.today, true)}</div>
       <Row label="連續" term="連續">

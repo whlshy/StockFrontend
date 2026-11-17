@@ -1,8 +1,8 @@
 import React from 'react'
-import { Chip } from '@mui/material'
 
 import { useGetStockNews } from '@/apis'
 import Loading from '@/components/elements/Loading'
+import StockTag from '@/components/elements/StockTag'
 
 const pad = (n) => String(n).padStart(2, '0')
 const fmtTime = (t) => {
@@ -29,9 +29,7 @@ const NewsPanel = ({ code }) => {
           <li key={i} className="flex flex-col gap-0.5 py-2 sm:flex-row sm:items-baseline sm:gap-3">
             <span className="shrink-0 text-xs tabular-nums text-gray-400 sm:w-32">{fmtTime(n.time)}</span>
             <span className="min-w-0 flex-1">
-              {n.announcement && (
-                <Chip label="公告" size="small" sx={{ mr: 0.75, height: 18, fontSize: 11, bgcolor: '#2563eb', color: '#fff' }} />
-              )}
+              {n.announcement && <StockTag name="公告" sx={{ mr: 0.75 }} />}
               <a href={n.url} target="_blank" rel="noopener noreferrer" className="text-gray-800 hover:text-blue-700 hover:underline">
                 {n.title}
               </a>

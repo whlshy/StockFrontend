@@ -1,9 +1,10 @@
 import React, { useState } from 'react'
-import { Tab, Tabs, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip } from '@mui/material'
+import { Tab, Tabs, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from '@mui/material'
 import { changeColor, fmtPrice } from '../stock/chartUtils'
 import { useOpenStock } from '../stock/stockModal'
 import { fmtAmt, fmtPct } from '../group/groupUtils'
 import Term from '@/components/elements/Term'
+import StockTag from '@/components/elements/StockTag'
 import Paging, { usePaging } from './Paging'
 
 const TAB_KEY = 'homePage.chipsTab'
@@ -19,7 +20,6 @@ const TABS = [
 ]
 const POWER_NOTE = { power: '三大法人', fPower: '外資', tPower: '投信' }
 
-const TAG_COLOR = { 同買: '#ef4444', 同賣: '#16a34a', 對作: '#f59e0b' }
 
 const loadTab = () => {
   try {
@@ -29,10 +29,6 @@ const loadTab = () => {
     return 'coBuy'
   }
 }
-
-const Tag = ({ label, color }) => (
-  <Chip label={label} size="small" sx={{ ml: 0.5, height: 18, fontSize: 11, bgcolor: color, color: '#fff' }} />
-)
 
 const head = { fontWeight: 'bold' }
 
@@ -95,8 +91,8 @@ const ChipsTable = ({ data }) => {
                   <TableCell>
                     <span className="font-medium">{r.code} {r.name}</span>
                     <span className="ml-1 text-xs text-gray-400">{r.market}</span>
-                    {r.tag && <Term k={`土洋${r.tag}`}><Tag label={`土洋${r.tag}`} color={TAG_COLOR[r.tag]} /></Term>}
-                    {r.exRight && <Term k="除權息"><Tag label="除權息" color="#6b7280" /></Term>}
+                    {r.tag && <StockTag name={`土洋${r.tag}`} sx={{ ml: 0.5 }} />}
+                    {r.exRight && <StockTag name="除權息" sx={{ ml: 0.5 }} />}
                   </TableCell>
                   <TableCell align="right" style={{ color: changeColor(r.pct) }}>{fmtPrice(r.close)}</TableCell>
                   <TableCell align="right" style={{ color: changeColor(r.pct) }}>{fmtPct(r.pct)}</TableCell>

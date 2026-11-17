@@ -3,6 +3,7 @@ import { Chip } from '@mui/material'
 
 import { changeColor, day, fmtPrice, fmtValue, fmtLots } from './chartUtils'
 import Term, { GLOSSARY } from '@/components/elements/Term'
+import StockTag from '@/components/elements/StockTag'
 
 // 個股頂部報價區
 const QuoteHeader = ({ info, candles, eps, events }) => {
@@ -98,7 +99,7 @@ const QuoteHeader = ({ info, candles, eps, events }) => {
         <div className="flex gap-2">
           {!!Market && <Chip label={Market} color="primary" size="small" />}
           {!!Industry && <Chip label={Industry} color="success" size="small" />}
-          {!!ExRight && <Term k="除權息"><Chip label="除權息" size="small" /></Term>}
+          {!!ExRight && <StockTag name="除權息" sx={{ height: 24, fontSize: 13 }} />}
         </div>
       </div>
       <div className="mt-1 flex flex-wrap items-end gap-x-3 tabular-nums">

@@ -1,7 +1,8 @@
 import React, { useState } from 'react'
-import { Tab, Tabs, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip } from '@mui/material'
+import { Tab, Tabs, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from '@mui/material'
 import { useOpenStock } from '../stock/stockModal'
 import Term from '@/components/elements/Term'
+import StockTag from '@/components/elements/StockTag'
 import Paging, { usePaging } from '../home/Paging'
 
 const loadTab = (key, tabs) => {
@@ -12,10 +13,6 @@ const loadTab = (key, tabs) => {
     return tabs[0].key
   }
 }
-
-const Tag = ({ label, color }) => (
-  <Chip label={label} size="small" sx={{ ml: 0.5, height: 18, fontSize: 11, bgcolor: color, color: '#fff' }} />
-)
 
 const head = { fontWeight: 'bold' }
 
@@ -67,7 +64,7 @@ const RankCard = ({ title, tabs, storageKey, data, columns, right, extra }) => {
                 <TableCell>
                   <span className="font-medium">{r.code} {r.name}</span>
                   <span className="ml-1 text-xs text-gray-400">{r.market}</span>
-                  {r.exRight && <Term k="除權息"><Tag label="除權息" color="#6b7280" /></Term>}
+                  {r.exRight && <StockTag name="除權息" sx={{ ml: 0.5 }} />}
                 </TableCell>
                 {cols.map(c => <TableCell key={c.label} align="right">{c.render(r)}</TableCell>)}
               </TableRow>
